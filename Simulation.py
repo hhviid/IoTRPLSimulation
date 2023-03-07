@@ -20,17 +20,24 @@ class Network(object):
 
         self.nodes.append(Node(env, (1,2) , None, 2, 1))
         self.nodes.append(Node(env, (1,3) , None, 2, 2))
-        self.nodes.append(RootNode(env, (1,1) , None, 2, 3))
+        self.nodes.append(RootNode(env, (1,2) , None, 2, 3))
 
         self.initNodeConnections()
 
     def initNodeConnections(self):
-        for innerNode in self.nodes:
-            for outerNode in self.nodes:
-                if innerNode.id != outerNode.id:
-                    if withinRadius(innerNode.pos, outerNode.pos, innerNode.radioRadius):
-                        print("worked")
-                        innerNode.addConnection(outerNode)
+        [print("InnerNode ", innerNode.id, "have connection ", outerNode.id) and
+          innerNode.addConnection(outerNode)
+          for innerNode in self.nodes 
+          for outerNode in self.nodes 
+          if withinRadius(innerNode.pos, outerNode.pos, innerNode.radioRadius) and
+          innerNode.id != outerNode.id]
+
+       # for innerNode in self.nodes:
+        #    for outerNode in self.nodes:
+         #       if innerNode.id != outerNode.id:
+          #          if withinRadius(innerNode.pos, outerNode.pos, innerNode.radioRadius):
+           #             print("worked")
+            #            innerNode.addConnection(outerNode)
 
 
 class MessageType(object):
