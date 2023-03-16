@@ -1,6 +1,8 @@
 import simpy
 from copy import deepcopy
+from visualizer import myFigure
 
+import matplotlib.pyplot as plt
 
 
 #math help functions 
@@ -21,12 +23,21 @@ class Network(object):
         self.nodes = []
 
         self.nodes.append(RootNode(env, (1,2) , None, 2, 1))
-        self.nodes.append(Node(env, (1,2) , None, 2, 2))
         self.nodes.append(Node(env, (1,3) , None, 2, 3))
         self.nodes.append(Node(env, (3,5) , None, 2, 4))
         self.nodes.append(Node(env, (3,6) , None, 2, 5))
-        self.nodes.append(Node(env, (1,4) , None, 2, 6))
+        self.nodes.append(Node(env, (2,4) , None, 2, 6))
         self.nodes.append(Node(env, (5,8) , None, 2, 7))
+        self.nodes.append(Node(env, (10,10) , None, 2, 8))
+        self.nodes.append(Node(env, (12,9) , None, 2, 9))
+        self.nodes.append(Node(env, (20,5) , None, 2, 10))
+        self.nodes.append(Node(env, (3,9) , None, 2, 11))
+        self.nodes.append(Node(env, (10,2) , None, 2, 12))
+        self.nodes.append(Node(env, (1,7) , None, 2, 13))
+        self.idToNode = {}
+
+        for node in self.nodes:
+            self.idToNode[f'{node.id}'] = node 
 
 
         self.initNodeConnections()
@@ -167,6 +178,24 @@ def counter_proc(env):
         yield env.timeout(1)
         counter += 1
 
+def draw(network):
+    figure = myFigure()
+
+    for node in network.nodes:
+        figure.add_point(node.pos[0],node.pos[1],node.rank)
+        if node.rank != 0 and node.parent != None:
+            figure.add_line(
+                node.pos[0],
+                node.pos[1],
+                network.idToNode[f'{node.parent}'].pos[0],
+                network.idToNode[f'{node.parent}'].pos[1])
+
+
+
+
+    figure.show()
+
+
 def main():
     env = simpy.Environment()
     
@@ -186,6 +215,7 @@ def main():
     env.run(until=50)
 
     [print(f'Node: {node.id} have rank: {node.rank} and parent {node.parent}') for node in network.nodes]    
+    draw(network)
 
 
 if __name__ == '__main__':
