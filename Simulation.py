@@ -1,20 +1,19 @@
 import simpy
 from copy import deepcopy
 from visualizer import myFigure
+from geometry import withinRadius
 
-import matplotlib.pyplot as plt
+"""
+TODO:
 
+* Implement DAO message (rework initial structure)
+* Implement functions in Geometry.py to
+* Implement routing tables with DAO messages
+* Implement local repair 
+* Implement global repair
+* Implemement different DODAG priorities
 
-#math help functions 
-def withinRadius(pos1, pos2, radius):
-    dx = abs(pos1[0] - pos2[0])
-    dy = abs(pos1[1] - pos2[1])
-
-    if dx>radius:
-        return False
-    if dy>radius: 
-        return False
-    return True
+"""
 
 
 class Network(object):

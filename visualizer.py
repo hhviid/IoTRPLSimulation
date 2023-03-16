@@ -1,9 +1,7 @@
 #lav en jøøddde gui og noget matplotlib
 
 import matplotlib.pyplot as plt
-import matplotlib.lines as lns
 import matplotlib.patches as ptch
-import numpy as np
 
 
 class myFigure:
@@ -40,3 +38,5 @@ class myFigure:
         plt.show()
 
 
+if __name__ == '__main__':
+    pass
