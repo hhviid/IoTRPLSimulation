@@ -1,10 +1,13 @@
 import simpy
-from visualizer import myFigure
+from visualizer import nodeDrawer
 from rpl import Network
 from rpl import Node
 from analyser import NetworkAnalyser
 
 from simpy.util import start_delayed
+
+import matplotlib.pyplot as plt
+
 
 """
 TODO:
@@ -26,12 +29,12 @@ def counter_proc(env):
         counter += 1
 
 def draw(env,network):
-    figure = myFigure()
+    figure = nodeDrawer()
 
     while True:
         for node in network.nodes:
             if node.is_alive:
-                figure.add_point(node.pos[0],node.pos[1],node.rank)
+                figure.add_point(node.pos[0],node.pos[1],node.id)
                 if node.rank != 0 and node.parent != None:
                     figure.add_line(
                         node.pos[0],
@@ -49,27 +52,41 @@ def draw(env,network):
         
 
 def analyse(env,networkAnalyser):
-    running_sum = []
+    running_sum_dis = []
+    running_sum_dao = []
+    running_sum_dio = []
     while True:
-        running_sum.append(networkAnalyser.sum_of_messages())
-        if env.now == 49:
+        dao,dis,dio = networkAnalyser.sum_of_each_message_type()
+        running_sum_dis.append(dis)
+        running_sum_dao.append(dao)
+        running_sum_dio.append(dio)
+        if env.now == 95:
             break
         yield env.timeout(1)
-    
-    print(running_sum)
+
+    fig, ax = plt.subplots()
+    ax.plot(running_sum_dis)
+    ax.plot(running_sum_dao)
+    ax.plot(running_sum_dio)
+
+    ax.legend(['dis','dao','dio'])
+    plt.show()
+
 
 def main():
     env = simpy.Environment()
     
     network = Network(env)
-    network_analyser = NetworkAnalyser(env,network)
-    env.process(analyse(env,network_analyser))
 
-    network.addNode(Node(env, (7,8) , None, 2, 22))
-    start_delayed(env, network.idToNode['22'].alive(), 20)
+    #network.addNode(Node(env, (7,8) , None, 2, 22))
+    #start_delayed(env, network.idToNode['22'].alive(), 20)
 
     network.addNode(Node(env, (2,5) , None, 2, 23))
     start_delayed(env, network.idToNode['23'].alive(), 30)
+
+    
+    network_analyser = NetworkAnalyser(env,network)
+    env.process(analyse(env,network_analyser))
 
     env.process(draw(env,network))
 
@@ -77,7 +94,7 @@ def main():
     
     
     env.process(counter_proc(env))
-    env.run(until=50)
+    env.run(until=100)
 
     [print(f'Node: {node.id} have rank: {node.rank} and parent {node.parent}') for node in network.nodes]  
 
@@ -87,7 +104,9 @@ def main():
     for id, connection in network.idToNode[table].routing_table_easy_read.items():
         print(f'Target: {id}   |  Next hop: {connection}')
   
-    myFigure.show_static()
+
+    nodeDrawer.show_static()
+
 
 if __name__ == '__main__':
     main()

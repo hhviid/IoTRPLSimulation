@@ -6,7 +6,7 @@ import numpy as np
 import time
 
 
-class myFigure:
+class nodeDrawer:
     def __init__(self):
         plt.ion()
         self.fig, self.ax = plt.subplots()
@@ -44,7 +44,7 @@ class myFigure:
 
         ticks = np.arange(0, axis+1, 2)
 
-        self.ax.grid()
+        #self.ax.grid()
         self.ax.set_yticks(ticks)
         self.ax.set_xticks(ticks)
         self.ax.set_xlim([0, axis])
@@ -68,6 +68,7 @@ class myFigure:
         self.text = [] 
         self.lines = []
         self.ax.clear()
+
 
 
 if __name__ == '__main__':

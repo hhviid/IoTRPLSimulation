@@ -19,10 +19,8 @@ class Network(object):
         self.nodes.append(Node(env, (2,1) , None, 2, 9))
         self.nodes.append(Node(env, (2,3) , None, 2, 10))
         self.nodes.append(Node(env, (3,9) , None, 2, 11))
-        self.nodes.append(Node(env, (7,2) , None, 2, 12))
         self.nodes.append(Node(env, (1,7) , None, 2, 13))
-        self.nodes.append(Node(env, (6,2) , None, 2, 14))
-        self.nodes.append(Node(env, (6,4) , None, 2, 15))
+
 
 
         self.idToNode = {}
@@ -158,7 +156,6 @@ class Node(object):
                 tricle_timer += 1
 
                 if tricle_timer == 10:
-                    print('DISSS')
                     self.broadcastMessage(DISMessage(self.id,self))
                     tricle_timer = 0
 
@@ -220,6 +217,8 @@ class Node(object):
         
         if message.DAG_rank < self.rank:
             return True
+        
+        return False
 
 
 
@@ -228,6 +227,16 @@ class RootNode(Node,object):
         super().__init__(env, pos, parent, radius, id)
         self.rank = 0
         self.parent = None
+
+    def alive(self):
+        self.is_alive = True
+        while True:
+            yield self.env.timeout(1) 
+            for _, connection in self.connectionsIn.items():
+                yield self.env.timeout(1)
+                if not connection.empty:
+                    self.message_intepreter(connection.readMessage())
+
 
     def initiliazeNetwork(self):
         self.broadcastMessage(self.construct_dio_message())
