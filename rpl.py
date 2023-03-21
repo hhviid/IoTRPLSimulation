@@ -9,31 +9,28 @@ class Network(object):
     def __init__(self, env) -> None:
         self.env = env
         self.nodes = []
-
-        self.nodes.append(RootNode(env, (1,2) , None, 2, 1))
-        self.nodes.append(Node(env, (1,3) , None, 2, 3))
-        self.nodes.append(Node(env, (3,5) , None, 2, 4))
-        self.nodes.append(Node(env, (3,6) , None, 2, 5))
-        self.nodes.append(Node(env, (2,4) , None, 2, 6))
-        self.nodes.append(Node(env, (5,8) , None, 2, 7))
-        self.nodes.append(Node(env, (2,1) , None, 2, 9))
-        self.nodes.append(Node(env, (2,3) , None, 2, 10))
-        self.nodes.append(Node(env, (3,9) , None, 2, 11))
-        self.nodes.append(Node(env, (1,7) , None, 2, 13))
-
-
-
         self.idToNode = {}
+
+
+    def setup(self):
+        #self.nodes.append(RootNode(self.env, (1,2) , None, 2, 1))
+        #self.nodes.append(Node(self.env, (1,3) , None, 2, 3))
+        #self.nodes.append(Node(self.env, (3,5) , None, 2, 4))
+        #self.nodes.append(Node(self.env, (3,6) , None, 2, 5))
+        #self.nodes.append(Node(self.env, (2,4) , None, 2, 6))
+        #self.nodes.append(Node(self.env, (5,8) , None, 2, 7))
+        #self.nodes.append(Node(self.env, (2,1) , None, 2, 9))
+        #self.nodes.append(Node(self.env, (2,3) , None, 2, 10))
+        #self.nodes.append(Node(self.env, (3,9) , None, 2, 11))
+        #self.nodes.append(Node(self.env, (1,7) , None, 2, 13))
 
         for node in self.nodes:
             self.idToNode[f'{node.id}'] = node 
 
-
         self.initNodeConnections()
 
-        env.process(self.nodes[0].initiliazeNetwork())
-        
-        [env.process(node.alive()) for node in self.nodes]
+        self.env.process(self.nodes[0].initiliazeNetwork())
+        [self.env.process(node.alive()) for node in self.nodes]
 
     def initNodeConnections(self):
         [ innerNode.addConnection(outerNode)
@@ -107,6 +104,7 @@ class NodeConnection(object):
         self.empty = True
         self.distance = distance
 
+
     def sendMessage(self, message):
         self.items.append(message)
         self.empty = False
@@ -118,10 +116,23 @@ class NodeConnection(object):
         return msg
 
 class Node(object):
+    class lose_battery(object):
+        def __init__(self, amount):
+            self.amount = amount
+
+        def __call__(self, foo, *args, **kwargs):
+            def inner_func(*args, **kwargs):
+                args[0].battery_life -= self.amount
+                if args[0].battery_life < 0:
+                   args[0].battery_life = 0  
+                foo(*args,**kwargs)
+            return inner_func
+        
     def __init__(self, env, pos, parent, radius, id) -> None:
         self.env = env
         self.is_alive = False
         self.rank = 99
+        self.battery_life = 100
         self.id = id
         self.pos = pos
         self.parent = parent
@@ -133,6 +144,7 @@ class Node(object):
         self.routing_table_easy_read = {}
         self.radioRadius = radius
         self.latest_dio = None
+        
 
     def addConnection(self, node):
         if not (f"{node.id}" in self.connectionsOut): 
@@ -140,11 +152,13 @@ class Node(object):
             self.connectionsOut[f'{node.id}'] = connection
             node.connectionsIn[f'{self.id}'] = connection
 
+    @lose_battery(2)
     def broadcastMessage(self,message):
         if self.connectionsOut:
             for _, connection in self.connectionsOut.items():
                 connection.sendMessage(message)
 
+    @lose_battery(2)
     def unicast_message(self,message,target):
         self.routingTable[f'{target}'].sendMessage(message)
 
@@ -161,11 +175,11 @@ class Node(object):
 
             yield self.env.timeout(1) 
             for _, connection in self.connectionsIn.items():
-                yield self.env.timeout(1)
                 if not connection.empty:
+                    yield self.env.timeout(1)
                     self.message_intepreter(connection.readMessage())
 
-
+    @lose_battery(1)
     def message_intepreter(self,message):
         if message.message_type == 'dio':
             self.read_dio_message(message)
@@ -175,21 +189,30 @@ class Node(object):
             self.read_dis_message(message)
 
     def read_dio_message(self,message):
-        if self.is_better_connection(message):
-            self.parent = message.instance_id
-
-            self.routingTable[f'{message.instance_id}'] = self.connectionsOut[f'{message.instance_id}']
-            self.routing_table_easy_read[f'{message.instance_id}'] = f'{message.instance_id}'
-
-            self.rank = message.DAG_rank + 1 
-
+        #if you get dio from parent -> update network topology with DAO message 
+        if message.instance_id == self.parent: 
             self.unicast_message(DAOMessage(False, self.id, self.id), self.parent)
-
             newMessage = deepcopy(message)
             newMessage.DAG_rank += 1 
             newMessage.instance_id = self.id
             self.latest_dio = newMessage
             self.broadcastMessage(newMessage)
+        else:
+            if self.is_better_connection(message):
+                self.parent = message.instance_id
+
+                self.routingTable[f'{message.instance_id}'] = self.connectionsOut[f'{message.instance_id}']
+                self.routing_table_easy_read[f'{message.instance_id}'] = f'{message.instance_id}'
+
+                self.rank = message.DAG_rank + 1 
+
+                self.unicast_message(DAOMessage(False, self.id, self.id), self.parent)
+
+                newMessage = deepcopy(message)
+                newMessage.DAG_rank += 1 
+                newMessage.instance_id = self.id
+                self.latest_dio = newMessage
+                self.broadcastMessage(newMessage)
 
         if message.DAG_rank == self.rank:
             self.siblings.append(message.instance_id)
@@ -210,7 +233,7 @@ class Node(object):
             self.routingTable[f'{message.dis_sender_id}'] = self.connectionsOut[f'{message.dis_sender_id}']
             self.unicast_message(self.latest_dio, message.dis_sender_id)
 
-    def is_better_connection(self, message):
+    def is_better_connection(self, message):        
         if message.DAG_rank == self.rank - 1:
             if self.connectionsOut[f'{self.parent}'].distance < self.connectionsOut[f'{message.instance_id}'].distance:
                 return False
@@ -227,14 +250,21 @@ class RootNode(Node,object):
         super().__init__(env, pos, parent, radius, id)
         self.rank = 0
         self.parent = None
+        self.tricle_timer = 0
+
 
     def alive(self):
         self.is_alive = True
         while True:
+            self.tricle_timer += 1
+            if self.tricle_timer == 40:
+                self.tricle_timer = 0
+                self.broadcastMessage(self.construct_dio_message())
+
             yield self.env.timeout(1) 
             for _, connection in self.connectionsIn.items():
-                yield self.env.timeout(1)
                 if not connection.empty:
+                    yield self.env.timeout(1)
                     self.message_intepreter(connection.readMessage())
 
 

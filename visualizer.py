@@ -40,9 +40,8 @@ class nodeDrawer:
         for line in self.lines:
             self.ax.add_line(line)
         
-        axis = 10
 
-        ticks = np.arange(0, axis+1, 2)
+        ticks = np.arange(0, axis+1, axis/10)
 
         #self.ax.grid()
         self.ax.set_yticks(ticks)
