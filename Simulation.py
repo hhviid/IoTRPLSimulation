@@ -34,7 +34,7 @@ def draw(env,network,figure,size):
         for node in network.nodes:
             if node.is_alive:
                 if node.battery_life > 0:
-                    figure.add_point(node.pos[0],node.pos[1],node.id)
+                    figure.add_point(node.pos[0],node.pos[1],node.rank)
                 else:
                     figure.add_single_point(node.pos[0],node.pos[1],'lightgray')
                 if node.rank != 0 and node.parent != None:
@@ -80,9 +80,10 @@ def analyse(env,networkAnalyser, time):
 def random_network(env,network, lower, upper, number_of_nodes):
     for index, position in enumerate(generate_random_nodes(number_of_nodes, lower, upper)):
         if index == 0:
-            network.addNode(RootNode(env, position, None, 2, index))
+            network.addNode(RootNode(env, position, None, 2, index, 200))
         else:
-            network.addNode(Node(env, position, None, 2, index))
+            network.addNode(Node(env, position, None, 2, index, 120))
+
 
 def tree_network(env, network, root_pos, number_of_layers, radio_range):
     number_of_layers -= 1
@@ -99,23 +100,21 @@ def update_title(env, figure, title):
 def main():
     env = simpy.Environment()
 
-
-
     lower = 1
     upper = 20
     number_of_nodes = 130
     
     network = Network(env)
-    #tree_network(env,network, (5, 1), 5, 2)
-    random_network(env,network, 1, 10, 60)
+    tree_network(env,network, (5, 1), 5, 2)
+    #random_network(env,network, 1, 10, 60)
     network.setup()
 
     view = 14
     figure = nodeDrawer()
     env.process(draw(env,network,figure,view)) 
 
-    #start_delayed(env,network.idToNode['21'].kill(), 40)
-    # start_delayed(env,update_title(env, figure, "kill node 21"), 40)
+    start_delayed(env,network.idToNode['12'].kill(), 40)
+    start_delayed(env,update_title(env, figure, "kill node 12"), 40)
 
     start_delayed(env,network.idToNode['0'].global_repair(), 60)
     start_delayed(env,update_title(env, figure, "Global repair"), 60)
@@ -123,9 +122,9 @@ def main():
 
 
     network_analyser = NetworkAnalyser(env,network)
-    env.process(analyse(env,network_analyser, 150))
+    env.process(analyse(env,network_analyser, 100))
     
-    env.run(until=100)
+    env.run(until=101)
 
 
     [print(f'Node: {node.id} have rank: {node.rank} and parent {node.parent}') for node in network.nodes]  

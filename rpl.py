@@ -268,8 +268,8 @@ class Node(object):
 
 
 class RootNode(Node,object):
-    def __init__(self, env, pos, parent, radius, id) -> None:
-        super().__init__(env, pos, parent, radius, id)
+    def __init__(self, env, pos, parent, radius, id, battery_life = 100) -> None:
+        super().__init__(env, pos, parent, radius, id, battery_life)
         self.rank = 0
         self.parent = None
         self.tricle_timer = 0
