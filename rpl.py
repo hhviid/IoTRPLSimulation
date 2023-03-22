@@ -66,7 +66,8 @@ class DIOMessage(MessageType):
                 destination_supported,
                 DAG_preference,
                 instance_id,
-                DAG_id):
+                DAG_id,
+                version_number = 1):
         super().__init__('dio')
         self.ground_flag = ground_flag
         self.destination_advertisment_trigger = destination_advertisment_trigger
@@ -76,6 +77,8 @@ class DIOMessage(MessageType):
         self.instance_id = instance_id
         self.DAG_rank = 0
         self.DAG_id = DAG_id
+        self.version_number = version_number
+
 
 class DAOMessage(MessageType):
     def __init__(self,
@@ -124,15 +127,15 @@ class Node(object):
             def inner_func(*args, **kwargs):
                 args[0].battery_life -= self.amount
                 if args[0].battery_life < 0:
-                   args[0].battery_life = 0  
+                   args[0].is_alive = False
                 foo(*args,**kwargs)
             return inner_func
         
-    def __init__(self, env, pos, parent, radius, id) -> None:
+    def __init__(self, env, pos, parent, radius, id, battery_life = 100) -> None:
         self.env = env
         self.is_alive = False
         self.rank = 99
-        self.battery_life = 100
+        self.battery_life = battery_life
         self.id = id
         self.pos = pos
         self.parent = parent
@@ -152,6 +155,7 @@ class Node(object):
             self.connectionsOut[f'{node.id}'] = connection
             node.connectionsIn[f'{self.id}'] = connection
 
+        
     @lose_battery(2)
     def broadcastMessage(self,message):
         if self.connectionsOut:
@@ -165,7 +169,7 @@ class Node(object):
     def alive(self):
         self.is_alive = True
         tricle_timer = 0
-        while True:
+        while self.is_alive:
             if self.parent == None:
                 tricle_timer += 1
 
@@ -178,6 +182,10 @@ class Node(object):
                 if not connection.empty:
                     yield self.env.timeout(1)
                     self.message_intepreter(connection.readMessage())
+    
+    def kill(self):
+        self.is_alive = False
+        yield self.env.timeout(1)
 
     @lose_battery(1)
     def message_intepreter(self,message):
@@ -189,6 +197,9 @@ class Node(object):
             self.read_dis_message(message)
 
     def read_dio_message(self,message):
+        if self.check_for_higher_dodag_version(message):
+            self.reset()
+            
         #if you get dio from parent -> update network topology with DAO message 
         if message.instance_id == self.parent: 
             self.unicast_message(DAOMessage(False, self.id, self.id), self.parent)
@@ -243,6 +254,17 @@ class Node(object):
         
         return False
 
+    def check_for_higher_dodag_version(self, message):
+        if self.latest_dio != None:
+            return True if self.latest_dio.version_number < message.version_number else False
+        else:
+            return False
+
+    def reset(self):
+        self.rank = 99
+        self.parent = None
+
+
 
 
 class RootNode(Node,object):
@@ -251,6 +273,7 @@ class RootNode(Node,object):
         self.rank = 0
         self.parent = None
         self.tricle_timer = 0
+        self.dodag_version_number = 0
 
 
     def alive(self):
@@ -267,19 +290,24 @@ class RootNode(Node,object):
                     yield self.env.timeout(1)
                     self.message_intepreter(connection.readMessage())
 
-
+    def global_repair(self):
+        self.broadcastMessage(self.construct_dio_message(self.dodag_version_number + 1))
+        yield self.env.timeout(1)        
+    
     def initiliazeNetwork(self):
         self.broadcastMessage(self.construct_dio_message())
         yield self.env.timeout(1)
 
-    def construct_dio_message(self):
+    def construct_dio_message(self, version_number = 1):
+        self.dodag_version_number = version_number
         return DIOMessage(
             True,
             True,
             True,
             0b111,
             self.id,
-            0b1000100101
+            0b1000100101,
+            version_number
         )
     
     def read_dao_message(self, message):

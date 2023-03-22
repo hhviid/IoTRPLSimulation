@@ -14,6 +14,7 @@ class nodeDrawer:
         self.pointY = []
         self.text = [] 
         self.lines = []
+        self.latest_event = "None"
 
     def add_point(self,x,y,text):
         self.pointX.append(x)

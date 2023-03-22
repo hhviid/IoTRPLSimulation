@@ -3,7 +3,7 @@ from visualizer import nodeDrawer
 from rpl import Network
 from rpl import Node, RootNode
 from analyser import NetworkAnalyser
-from geometry import generate_random_nodes
+from geometry import generate_random_nodes, generate_binary_tree_no_root
 
 from simpy.util import start_delayed
 
@@ -29,9 +29,7 @@ def counter_proc(env):
         yield env.timeout(1)
         counter += 1
 
-def draw(env,network,size):
-    figure = nodeDrawer()
-
+def draw(env,network,figure,size):
     while True:
         for node in network.nodes:
             if node.is_alive:
@@ -48,14 +46,14 @@ def draw(env,network,size):
             else:
                 figure.add_single_point(node.pos[0],node.pos[1],'lightgray')
 
-        figure.ax.set_title(f'Discrete time: {env.now}')
+        figure.ax.set_title(f'Discrete time: {env.now}  |  Last event: {figure.latest_event}')
         figure.show(size)
 
         yield env.timeout(1)
         figure.clear()
         
 
-def analyse(env,networkAnalyser):
+def analyse(env,networkAnalyser, time):
     running_sum_dis = []
     running_sum_dao = []
     running_sum_dio = []
@@ -66,7 +64,7 @@ def analyse(env,networkAnalyser):
         running_sum_dis.append(dis)
         running_sum_dao.append(dao)
         running_sum_dio.append(dio)
-        if env.now == 95:
+        if env.now == time:
             break
         yield env.timeout(1)
 
@@ -79,39 +77,58 @@ def analyse(env,networkAnalyser):
     ax.legend(['dis','dao','dio'])
     plt.show()
 
-
-def main():
-    env = simpy.Environment()
-
-    lower = 1
-    upper = 10
-    number_of_nodes = 40
-    
-    network = Network(env)
+def random_network(env,network, lower, upper, number_of_nodes):
     for index, position in enumerate(generate_random_nodes(number_of_nodes, lower, upper)):
         if index == 0:
             network.addNode(RootNode(env, position, None, 2, index))
         else:
             network.addNode(Node(env, position, None, 2, index))
 
+def tree_network(env, network, root_pos, number_of_layers, radio_range):
+    number_of_layers -= 1
+    network.addNode(RootNode(env, root_pos, None, radio_range, 0))
+    
+    for index, position in enumerate(generate_binary_tree_no_root(number_of_layers, root_pos, radio_range),1):
+        network.addNode(Node(env, position, None, radio_range, index, 500))
+
+def update_title(env, figure, title):
+    figure.latest_event = title + f" Time: {env.now}"
+    yield env.timeout(1)
+
+            
+def main():
+    env = simpy.Environment()
+
+
+
+    lower = 1
+    upper = 20
+    number_of_nodes = 130
+    
+    network = Network(env)
+    #tree_network(env,network, (5, 1), 5, 2)
+    random_network(env,network, 1, 10, 60)
     network.setup()
 
-    #network.addNode(Node(env, (7,8) , None, 2, 22))
-    #start_delayed(env, network.idToNode['22'].alive(), 20)
+    view = 14
+    figure = nodeDrawer()
+    env.process(draw(env,network,figure,view)) 
 
-    #network.addNode(Node(env, (2,5) , None, 2, 23))
-    #start_delayed(env, network.idToNode['23'].alive(), 30)
+    #start_delayed(env,network.idToNode['21'].kill(), 40)
+    # start_delayed(env,update_title(env, figure, "kill node 21"), 40)
+
+    start_delayed(env,network.idToNode['0'].global_repair(), 60)
+    start_delayed(env,update_title(env, figure, "Global repair"), 60)
+
+
 
     network_analyser = NetworkAnalyser(env,network)
-    env.process(analyse(env,network_analyser))
-
-    env.process(draw(env,network,upper+1)) 
+    env.process(analyse(env,network_analyser, 150))
     
-    env.process(counter_proc(env))
     env.run(until=100)
 
-    [print(f'Node: {node.id} have rank: {node.rank} and parent {node.parent}') for node in network.nodes]  
 
+    [print(f'Node: {node.id} have rank: {node.rank} and parent {node.parent}') for node in network.nodes]  
 
     table = '1'
     print(f'\nRouting table id: {table}')
