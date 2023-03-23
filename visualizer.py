@@ -21,13 +21,14 @@ class nodeDrawer:
         self.pointY.append(y)
         self.text.append(text)
 
-    def add_line(self,x1,y1,x2,y2):
+    def add_line(self,x1,y1,x2,y2, color = "black"):
         #self.lines.append(lns.Line2D([x1,x2], [y1,y2]))
         circle_radius = 0.1
         self.lines.append(ptch.FancyArrow(x1,y1,(x2-x1),(y2-y1),
                                           head_width=0.2,
                                           length_includes_head=True,
-                                          fill=False
+                                          fill=False,
+                                          color = color
                                           ))
         
     def add_single_point(self,x,y,color):

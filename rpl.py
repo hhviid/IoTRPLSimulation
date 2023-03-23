@@ -13,17 +13,6 @@ class Network(object):
 
 
     def setup(self):
-        #self.nodes.append(RootNode(self.env, (1,2) , None, 2, 1))
-        #self.nodes.append(Node(self.env, (1,3) , None, 2, 3))
-        #self.nodes.append(Node(self.env, (3,5) , None, 2, 4))
-        #self.nodes.append(Node(self.env, (3,6) , None, 2, 5))
-        #self.nodes.append(Node(self.env, (2,4) , None, 2, 6))
-        #self.nodes.append(Node(self.env, (5,8) , None, 2, 7))
-        #self.nodes.append(Node(self.env, (2,1) , None, 2, 9))
-        #self.nodes.append(Node(self.env, (2,3) , None, 2, 10))
-        #self.nodes.append(Node(self.env, (3,9) , None, 2, 11))
-        #self.nodes.append(Node(self.env, (1,7) , None, 2, 13))
-
         for node in self.nodes:
             self.idToNode[f'{node.id}'] = node 
 
@@ -148,13 +137,19 @@ class Node(object):
         self.radioRadius = radius
         self.latest_dio = None
         
+    def read_item_generator(self):
+        while True:
+            for _, connection in self.connectionsIn.items():
+                if not connection.empty:
+                    self.message_intepreter(connection.readMessage())
+                    yield 
+            yield
 
     def addConnection(self, node):
         if not (f"{node.id}" in self.connectionsOut): 
             connection = NodeConnection(self.env, distance(node.pos, self.pos))
             self.connectionsOut[f'{node.id}'] = connection
             node.connectionsIn[f'{self.id}'] = connection
-
         
     @lose_battery(2)
     def broadcastMessage(self,message):
@@ -169,6 +164,8 @@ class Node(object):
     def alive(self):
         self.is_alive = True
         tricle_timer = 0
+        reader = self.read_item_generator()
+
         while self.is_alive:
             if self.parent == None:
                 tricle_timer += 1
@@ -177,11 +174,12 @@ class Node(object):
                     self.broadcastMessage(DISMessage(self.id,self))
                     tricle_timer = 0
 
+            next(reader)
             yield self.env.timeout(1) 
-            for _, connection in self.connectionsIn.items():
-                if not connection.empty:
-                    yield self.env.timeout(1)
-                    self.message_intepreter(connection.readMessage())
+            #for _, connection in self.connectionsIn.items():
+            #    if not connection.empty:
+            #        yield self.env.timeout(1)
+            #        self.message_intepreter(connection.readMessage())
     
     def kill(self):
         self.is_alive = False
@@ -265,8 +263,6 @@ class Node(object):
         self.parent = None
 
 
-
-
 class RootNode(Node,object):
     def __init__(self, env, pos, parent, radius, id, battery_life = 100) -> None:
         super().__init__(env, pos, parent, radius, id, battery_life)
@@ -275,20 +271,23 @@ class RootNode(Node,object):
         self.tricle_timer = 0
         self.dodag_version_number = 0
 
-
     def alive(self):
         self.is_alive = True
+        reader = self.read_item_generator()
+
         while True:
             self.tricle_timer += 1
-            if self.tricle_timer == 40:
+            if self.tricle_timer == 90:
                 self.tricle_timer = 0
-                self.broadcastMessage(self.construct_dio_message())
+                self.broadcastMessage(self.construct_dio_message(self.dodag_version_number))
 
+            next(reader)
             yield self.env.timeout(1) 
-            for _, connection in self.connectionsIn.items():
-                if not connection.empty:
-                    yield self.env.timeout(1)
-                    self.message_intepreter(connection.readMessage())
+            
+            #for _, connection in self.connectionsIn.items():
+            #    if not connection.empty:
+            #        yield self.env.timeout(1)
+            #        self.message_intepreter(connection.readMessage())
 
     def global_repair(self):
         self.broadcastMessage(self.construct_dio_message(self.dodag_version_number + 1))
