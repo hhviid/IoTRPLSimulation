@@ -176,10 +176,6 @@ class Node(object):
 
             next(reader)
             yield self.env.timeout(1) 
-            #for _, connection in self.connectionsIn.items():
-            #    if not connection.empty:
-            #        yield self.env.timeout(1)
-            #        self.message_intepreter(connection.readMessage())
     
     def kill(self):
         self.is_alive = False
@@ -283,11 +279,7 @@ class RootNode(Node,object):
 
             next(reader)
             yield self.env.timeout(1) 
-            
-            #for _, connection in self.connectionsIn.items():
-            #    if not connection.empty:
-            #        yield self.env.timeout(1)
-            #        self.message_intepreter(connection.readMessage())
+
 
     def global_repair(self):
         self.broadcastMessage(self.construct_dio_message(self.dodag_version_number + 1))

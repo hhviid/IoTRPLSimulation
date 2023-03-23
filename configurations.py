@@ -71,16 +71,18 @@ class base_simulation():
         ax.legend(['dis','dao','dio'])
         nodeDrawer.show_static()
 
-    def setup_anaylser(self, analyser):
+    def setup_analyser(self, analyser):
         self.network_analyser = analyser
-        self.env.process(self.analyse())
+    
+    def add_analysis(self, analysis):
+        self.env.process(analysis(self.env,self.network_analyser,self.time-1))
 
     def random_network(self, lower, upper, number_of_nodes):
         for index, position in enumerate(generate_random_nodes(number_of_nodes, lower, upper)):
             if index == 0:
-                self.network.addNode(RootNode(self.env, position, None, 2, index, 200))
+                self.network.addNode(RootNode(self.env, position, None, 2, index, 500))
             else:
-                self.network.addNode(Node(self.env, position, None, 2, index, 200))
+                self.network.addNode(Node(self.env, position, None, 2, index, 500))
     
     def tree_network(self, root_pos, number_of_layers, radio_range):
         number_of_layers -= 1
@@ -94,11 +96,13 @@ class base_simulation():
         yield self.env.timeout(1)
 
 class binary_tree_simulation_1(base_simulation):
-    def __init__(self, env):
+    def __init__(self, env, layers):
         super().__init__(env)
+        self.time = 200
+        self.layers = layers
 
-    def run(self, timesteps = 201):
-        self.tree_network((5, 1), 5, 2)
+    def run(self, timesteps = 200):
+        self.tree_network((5, 1), self.layers, 2)
 
         self.network.setup()
         self.time = timesteps
@@ -114,6 +118,7 @@ class binary_tree_simulation_1(base_simulation):
 class random_simulation_1(base_simulation):
     def __init__(self, env):
         super().__init__(env)   
+        self.time = 201
 
     def run(self, timesteps = 201):
         self.random_network(1,10,60)

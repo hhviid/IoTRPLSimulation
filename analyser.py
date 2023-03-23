@@ -1,6 +1,28 @@
-# this file should be an analyser on the netwrok
-
 from rpl import Network
+from visualizer import nodeDrawer
+import matplotlib.pyplot as plt
+
+
+def message_analysis(env, analyser, timesteps):
+    running_sum_dis = []
+    running_sum_dao = []
+    running_sum_dio = []
+    while True:
+        dao,dis,dio = analyser.sum_of_each_message_type()
+        running_sum_dis.append(dis)
+        running_sum_dao.append(dao)
+        running_sum_dio.append(dio)
+        if env.now == timesteps - 1:
+            break
+        yield env.timeout(1)
+
+    fig, ax = plt.subplots()
+    ax.plot(running_sum_dis)
+    ax.plot(running_sum_dao)
+    ax.plot(running_sum_dio)
+
+    ax.legend(['dis','dao','dio'])
+    nodeDrawer.show_static()
 
 class NetworkAnalyser():
     def __init__(self, env, network):
@@ -31,6 +53,9 @@ class NetworkAnalyser():
     def sum_of_each_message_type_one_node(self,nodeId):
         node = self.network.idToNode[nodeId]
         return self.__sum_of_messages(node)
+    
+    def length_of_routing_table(self, nodeId):
+        return len(self.network.idToNode[nodeId].routingTable)
     
     def __sum_of_messages(self, node):
         dao,dis,dio = 0,0,0
