@@ -8,13 +8,14 @@ import matplotlib.pyplot as plt
 
 class base_simulation():
     def __init__(self,
-                 env):
+                 env,
+                 view = 14):
         self.env = env
         self.time = 0
         self.network = Network(self.env)
 
         self.figure = nodeDrawer()
-        self.env.process(self.draw(14)) 
+        self.env.process(self.draw(view)) 
     
     def run(self, timesteps):
         pass
@@ -46,30 +47,6 @@ class base_simulation():
 
             yield self.env.timeout(1)
             self.figure.clear()
-
-    def analyse(self):
-        running_sum_dis = []
-        running_sum_dao = []
-        running_sum_dio = []
-        #running_sum = []
-        while True:
-            dao,dis,dio = self.network_analyser.sum_of_each_message_type()
-            #running_sum.append(networkAnalyser.sum_of_messages())
-            running_sum_dis.append(dis)
-            running_sum_dao.append(dao)
-            running_sum_dio.append(dio)
-            if self.env.now == self.time - 1:
-                break
-            yield self.env.timeout(1)
-
-        fig, ax = plt.subplots()
-        ax.plot(running_sum_dis)
-        ax.plot(running_sum_dao)
-        ax.plot(running_sum_dio)
-        #ax.plot(running_sum)
-
-        ax.legend(['dis','dao','dio'])
-        nodeDrawer.show_static()
 
     def setup_analyser(self, analyser):
         self.network_analyser = analyser
@@ -127,6 +104,29 @@ class random_simulation_1(base_simulation):
         self.time = timesteps
 
         self.env.run(until=timesteps)
+
+class spawn_node_late_kill_later(base_simulation):
+    def __init__(self, env):
+        super().__init__(env, 10)   
+        self.time = 300
+
+    def run(self, timesteps = 300):
+        self.tree_network((5, 1), 4, 2)
+        self.network.setup()
+        self.time = timesteps
+
+        self.network.addNode(Node(self.env,(2.4, 5),None, 2, 100, 200))
+        start_delayed(self.env, self.network.idToNode[f'{100}'].alive(), 40)
+        start_delayed(self.env,self.update_title("Spawned node"), 40)
+
+        start_delayed(self.env, self.network.idToNode[f'{10}'].kill(), 80)
+        start_delayed(self.env,self.update_title("Killed node 10 "), 80)
+
+        start_delayed(self.env,self.network.idToNode['0'].global_repair(), 130)
+        start_delayed(self.env,self.update_title("Global repair"), 130)
+
+        self.env.run(until=timesteps)
+    
     
 if __name__ == '__main__':
     pass

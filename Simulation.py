@@ -11,7 +11,7 @@ TODO:
 def main():
     env = simpy.Environment()
 
-    simulation = cfg.binary_tree_simulation_1(env, 4)
+    simulation = cfg.spawn_node_late_kill_later(env)
     simulation.setup_analyser(NetworkAnalyser(env,simulation.network))
     simulation.add_analysis(message_analysis)
     simulation.run()

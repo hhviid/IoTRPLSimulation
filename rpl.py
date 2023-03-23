@@ -178,6 +178,7 @@ class Node(object):
             yield self.env.timeout(1) 
     
     def kill(self):
+        self.reset()
         self.is_alive = False
         yield self.env.timeout(1)
 
@@ -291,7 +292,7 @@ class RootNode(Node,object):
 
     def construct_dio_message(self, version_number = 1):
         self.dodag_version_number = version_number
-        return DIOMessage(
+        self.latest_dio =  DIOMessage(
             True,
             True,
             True,
@@ -300,6 +301,7 @@ class RootNode(Node,object):
             0b1000100101,
             version_number
         )
+        return self.latest_dio
     
     def read_dao_message(self, message):
         self.routingTable[f'{message.dao_sender_id}'] = self.connectionsOut[f'{message.last_node_id}']
