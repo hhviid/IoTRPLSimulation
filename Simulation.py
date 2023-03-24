@@ -1,5 +1,5 @@
 import simpy
-from analyser import NetworkAnalyser, message_analysis
+from analyser import NetworkAnalyser, message_analysis, root_routing_table_analysis
 import configurations as cfg
 
 """
@@ -14,15 +14,9 @@ def main():
     simulation = cfg.spawn_node_late_kill_later(env)
     simulation.setup_analyser(NetworkAnalyser(env,simulation.network))
     simulation.add_analysis(message_analysis)
+    simulation.add_analysis(root_routing_table_analysis)
     simulation.run()
     
-    [print(f'Node: {node.id} have rank: {node.rank} and parent {node.parent}') for node in simulation.network.nodes]  
-
-    table = '0'
-    print(f'\nRouting table id: {table}')
-    for id, connection in simulation.network.idToNode[table].routing_table_easy_read.items():
-        print(f'Target: {id}   |  Next hop: {connection}')
-  
 
 if __name__ == '__main__':
     main()

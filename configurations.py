@@ -17,7 +17,11 @@ class base_simulation():
         self.figure = nodeDrawer()
         self.env.process(self.draw(view)) 
     
-    def run(self, timesteps):
+    def run(self, *args, **kwargs):
+        self.run_simulation(*args, **kwargs)
+        nodeDrawer.show_static()
+
+    def run_simulation(self, *args, **kwargs):
         pass
 
     def draw(self, size):
@@ -25,12 +29,15 @@ class base_simulation():
             for node in self.network.nodes:
                 if node.is_alive:
                     if node.battery_life > 0:
-                        self.figure.add_point(node.pos[0],node.pos[1],node.rank)
+                        self.figure.add_point(node.pos[0],node.pos[1],node.id)
                     else:
                         self.figure.add_single_point(node.pos[0],node.pos[1],'lightgray')
                     if node.rank != 0 and node.parent != None:
-                        if not node.connectionsOut[f'{node.parent}'].empty or not node.connectionsIn[f'{node.parent}'].empty:
-                            color = "green"
+                        if self.network.idToNode[f'{node.parent}'].is_alive:
+                            if not node.connectionsOut[f'{node.parent}'].empty or not node.connectionsIn[f'{node.parent}'].empty:
+                                color = "green"
+                            else:
+                                color = "black"
                         else:
                             color = "black"
                         self.figure.add_line(
@@ -49,6 +56,7 @@ class base_simulation():
             self.figure.clear()
 
     def setup_analyser(self, analyser):
+        self.figure.add_on_click(analyser)
         self.network_analyser = analyser
     
     def add_analysis(self, analysis):
@@ -73,19 +81,19 @@ class base_simulation():
         yield self.env.timeout(1)
 
 class binary_tree_simulation_1(base_simulation):
-    def __init__(self, env, layers):
-        super().__init__(env)
+    def __init__(self, env, layers, view = 14):
+        super().__init__(env, view)
         self.time = 200
         self.layers = layers
 
-    def run(self, timesteps = 200):
+    def run_simulation(self, timesteps = 200):
         self.tree_network((5, 1), self.layers, 2)
 
         self.network.setup()
         self.time = timesteps
 
-        start_delayed(self.env,self.network.idToNode['12'].kill(), 60)
-        start_delayed(self.env,self.update_title("kill node 12"), 60)
+        start_delayed(self.env, self.network.kill_node(12), 60)
+        start_delayed(self.env, self.update_title("kill node 12"), 60)
 
         start_delayed(self.env,self.network.idToNode['0'].global_repair(), 130)
         start_delayed(self.env,self.update_title("Global repair"), 130)
@@ -93,12 +101,12 @@ class binary_tree_simulation_1(base_simulation):
         self.env.run(until=timesteps)
 
 class random_simulation_1(base_simulation):
-    def __init__(self, env):
-        super().__init__(env)   
-        self.time = 201
+    def __init__(self, env, view = 14):
+        super().__init__(env, view)   
+        self.time = 100
 
-    def run(self, timesteps = 201):
-        self.random_network(1,10,60)
+    def run_simulation(self, timesteps = 80):
+        self.random_network(1,10,30)
 
         self.network.setup()
         self.time = timesteps
@@ -108,9 +116,9 @@ class random_simulation_1(base_simulation):
 class spawn_node_late_kill_later(base_simulation):
     def __init__(self, env):
         super().__init__(env, 10)   
-        self.time = 300
+        self.time = 250
 
-    def run(self, timesteps = 300):
+    def run_simulation(self, timesteps = 250):
         self.tree_network((5, 1), 4, 2)
         self.network.setup()
         self.time = timesteps
@@ -119,7 +127,7 @@ class spawn_node_late_kill_later(base_simulation):
         start_delayed(self.env, self.network.idToNode[f'{100}'].alive(), 40)
         start_delayed(self.env,self.update_title("Spawned node"), 40)
 
-        start_delayed(self.env, self.network.idToNode[f'{10}'].kill(), 80)
+        start_delayed(self.env, self.network.kill_node(10), 80)
         start_delayed(self.env,self.update_title("Killed node 10 "), 80)
 
         start_delayed(self.env,self.network.idToNode['0'].global_repair(), 130)

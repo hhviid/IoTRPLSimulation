@@ -28,20 +28,21 @@ class Network(object):
           if withinRadius(innerNode.pos, outerNode.pos, innerNode.radioRadius) and
           innerNode.id != outerNode.id]
 
-       # for innerNode in self.nodes:
-        #    for outerNode in self.nodes:
-         #       if innerNode.id != outerNode.id:
-          #          if withinRadius(innerNode.pos, outerNode.pos, innerNode.radioRadius):
-           #             print("worked")
-            #            innerNode.addConnection(outerNode)
-
-
     def addNode(self, node):
         for other_node in self.nodes:
             if withinRadius(node.pos, other_node.pos, node.radioRadius):
                 node.addConnection(other_node)
         self.nodes.append(node)
         self.idToNode[f'{node.id}'] = node
+
+    def kill_node(self, node_id):
+        node_to_kill = self.idToNode[f'{node_id}']
+        node_to_kill.kill()
+
+        for node in list(filter(lambda node: True if f'{node_to_kill.id}' in node.connectionsOut else False, self.nodes)):
+            node.connectionsOut.pop(f'{node_to_kill.id}')
+
+        yield self.env.timeout(1)
 
 
 class MessageType(object):
@@ -67,7 +68,6 @@ class DIOMessage(MessageType):
         self.DAG_rank = 0
         self.DAG_id = DAG_id
         self.version_number = version_number
-
 
 class DAOMessage(MessageType):
     def __init__(self,
@@ -96,7 +96,6 @@ class NodeConnection(object):
         self.empty = True
         self.distance = distance
 
-
     def sendMessage(self, message):
         self.items.append(message)
         self.empty = False
@@ -106,6 +105,12 @@ class NodeConnection(object):
         if not self.items:
             self.empty = True
         return msg
+
+class networkInteface():
+    def __init__(self) -> None:
+        self.connections_in = []
+        self.connections_out = []
+    
 
 class Node(object):
     class lose_battery(object):
@@ -180,7 +185,6 @@ class Node(object):
     def kill(self):
         self.reset()
         self.is_alive = False
-        yield self.env.timeout(1)
 
     @lose_battery(1)
     def message_intepreter(self,message):

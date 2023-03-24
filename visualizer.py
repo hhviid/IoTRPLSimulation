@@ -5,6 +5,8 @@ import matplotlib.patches as ptch
 import numpy as np
 import time
 
+from geometry import distance
+
 
 class nodeDrawer:
     def __init__(self):
@@ -15,6 +17,30 @@ class nodeDrawer:
         self.text = [] 
         self.lines = []
         self.latest_event = "None"
+        self.routing_text = None
+
+    def add_on_click(self, analyser):
+        def on_click(event, drawer, figure, axis):
+            if drawer.routing_text != None:
+                drawer.routing_text.remove()
+                drawer.routing_text = None
+
+            id, pos = analyser.closest_node_to_pos((event.xdata, event.ydata))
+
+            if distance(pos, (event.xdata,event.ydata)) < 0.8:
+                drawer.routing_text = axis.text(0.05,
+                            .95,
+                            analyser.get_routing_table_text(f'{id}'),
+                            fontsize = 8,     
+                            ha='left',
+                            va='top',
+                            transform = axis.transAxes,
+                            bbox=dict(facecolor='white', edgecolor='black'))
+                
+            figure.canvas.draw()
+
+        cid = self.fig.canvas.mpl_connect('button_release_event', lambda event: on_click(event, self, self.fig, self.ax))
+
 
     def add_point(self,x,y,text):
         self.pointX.append(x)
@@ -56,6 +82,8 @@ class nodeDrawer:
 
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
+
+
 
     @staticmethod
     def show_static():

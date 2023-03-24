@@ -1,6 +1,7 @@
 from rpl import Network
 from visualizer import nodeDrawer
 import matplotlib.pyplot as plt
+from geometry import distance
 
 
 def message_analysis(env, analyser, timesteps):
@@ -22,7 +23,27 @@ def message_analysis(env, analyser, timesteps):
     ax.plot(running_sum_dio)
 
     ax.legend(['dis','dao','dio'])
-    nodeDrawer.show_static()
+    ax.set_xlabel('Time step')
+    ax.set_ylabel('Total messages in network')
+    ax.set_title('Messages in network')
+
+def root_routing_table_analysis(env, analyser, timesteps):
+    running_size = []
+    while True:
+        running_size.append(analyser.length_of_routing_table('0'))
+        if env.now == timesteps - 1:
+            break
+        yield env.timeout(1)
+
+    total_nodes = analyser.get_total_nodes_in_network()
+
+    _, ax = plt.subplots()
+    ax.plot(list(map(lambda n: n/total_nodes,running_size)))
+    ax.set_xlabel('Time step')
+    ax.set_ylabel('cdf')
+    ax.set_title('cdf of root routing table')
+
+
 
 class NetworkAnalyser():
     def __init__(self, env, network):
@@ -56,6 +77,28 @@ class NetworkAnalyser():
     
     def length_of_routing_table(self, nodeId):
         return len(self.network.idToNode[nodeId].routingTable)
+    
+    def get_routing_table_closest_node(self, pos):
+        closest_node, _ = self.closest_node_to_pos(pos)
+        return self.get_routing_table_text(f'{closest_node}')
+    
+    def get_total_nodes_in_network(self):
+        return len(self.network.nodes)
+    
+    def get_routing_table_text(self, nodeId):
+        id_to_nodes = self.network.idToNode[nodeId].routing_table_easy_read
+        return f'Node: {nodeId} \n\n' + "\n".join("{!r} : {!r}".format(k, v).replace("'","") for k, v in id_to_nodes.items()) 
+
+    def closest_node_to_pos(self, pos):
+        node_iterator = iter(self.network.nodes)
+        closest_node = next(node_iterator)
+        shortest_distance = distance(pos,closest_node.pos)
+        for node in node_iterator:
+            cur_distance = distance(pos, node.pos)
+            if cur_distance < shortest_distance:
+                shortest_distance = cur_distance
+                closest_node = node
+        return closest_node.id, closest_node.pos
     
     def __sum_of_messages(self, node):
         dao,dis,dio = 0,0,0
