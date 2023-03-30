@@ -4,18 +4,22 @@ from rpl import Node, RootNode
 from geometry import generate_random_nodes, generate_binary_tree_no_root
 from simpy.util import start_delayed
 import matplotlib.pyplot as plt
+import simpy
 
 
 class base_simulation():
     def __init__(self,
                  env,
-                 view = 14):
+                 view = 14,
+                 draw = True):
         self.env = env
         self.time = 0
         self.network = Network(self.env)
 
         self.figure = nodeDrawer()
-        self.env.process(self.draw(view)) 
+
+        if draw:
+            self.draw_process = self.env.process(self.draw(view)) 
     
     def run(self, *args, **kwargs):
         self.run_simulation(*args, **kwargs)
@@ -23,6 +27,9 @@ class base_simulation():
 
     def run_simulation(self, *args, **kwargs):
         pass
+
+    def stop_drawing(self):
+        self.draw_process.interrupt()
 
     def draw(self, size):
         while True:
@@ -55,6 +62,7 @@ class base_simulation():
             yield self.env.timeout(1)
             self.figure.clear()
 
+
     def setup_analyser(self, analyser):
         self.figure.add_on_click(analyser)
         self.network_analyser = analyser
@@ -81,8 +89,8 @@ class base_simulation():
         yield self.env.timeout(1)
 
 class binary_tree_simulation_1(base_simulation):
-    def __init__(self, env, layers, view = 14):
-        super().__init__(env, view)
+    def __init__(self, env, layers, view = 14, draw = True):
+        super().__init__(env, view, draw = draw)
         self.time = 200
         self.layers = layers
 
@@ -100,6 +108,18 @@ class binary_tree_simulation_1(base_simulation):
 
         self.env.run(until=timesteps)
 
+class binary_tree_simulation_no_events(base_simulation):
+    def __init__(self, env, layers, view = 14, draw = True, time = 2000):
+        super().__init__(env, view, draw = draw)
+        self.time = time
+        self.layers = layers
+
+    def run_simulation(self, timesteps = 2000):
+        self.tree_network((5, 1), self.layers, 2)
+        self.network.setup()
+        self.time = timesteps
+        self.env.run(until=timesteps)
+
 class random_simulation_1(base_simulation):
     def __init__(self, env, view = 14):
         super().__init__(env, view)   
@@ -114,8 +134,8 @@ class random_simulation_1(base_simulation):
         self.env.run(until=timesteps)
 
 class spawn_node_late_kill_later(base_simulation):
-    def __init__(self, env):
-        super().__init__(env, 10)   
+    def __init__(self, env, draw = True):
+        super().__init__(env, 10, draw = draw)   
         self.time = 250
 
     def run_simulation(self, timesteps = 250):

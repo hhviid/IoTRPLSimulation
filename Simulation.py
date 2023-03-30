@@ -11,7 +11,7 @@ TODO:
 def main():
     env = simpy.Environment()
 
-    simulation = cfg.spawn_node_late_kill_later(env)
+    simulation = cfg.binary_tree_simulation_no_events(env, 5, draw = True)
     simulation.setup_analyser(NetworkAnalyser(env,simulation.network))
     simulation.add_analysis(message_analysis)
     simulation.add_analysis(root_routing_table_analysis)
