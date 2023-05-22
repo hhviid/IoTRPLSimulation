@@ -15,6 +15,8 @@ class base_simulation():
         self.env = env
         self.time = 0
         self.network = Network(self.env)
+        self.view = view
+        self.draw_ = draw
 
         self.figure = nodeDrawer()
 
@@ -23,6 +25,8 @@ class base_simulation():
     
     def run(self, *args, **kwargs):
         self.run_simulation(*args, **kwargs)
+        if not self.draw_:
+            next(self.draw(self.view))
         nodeDrawer.show_static()
 
     def run_simulation(self, *args, **kwargs):
@@ -75,7 +79,7 @@ class base_simulation():
             if index == 0:
                 self.network.addNode(RootNode(self.env, position, None, 2, index, 500))
             else:
-                self.network.addNode(Node(self.env, position, None, 2, index, 500))
+                self.network.addNode(Node(self.env, position, None, 2, index, 200))
     
     def tree_network(self, root_pos, number_of_layers, radio_range):
         number_of_layers -= 1
@@ -109,24 +113,24 @@ class binary_tree_simulation_1(base_simulation):
         self.env.run(until=timesteps)
 
 class binary_tree_simulation_no_events(base_simulation):
-    def __init__(self, env, layers, view = 14, draw = True, time = 2000):
+    def __init__(self, env, layers, view = 14, draw = True, time = 200):
         super().__init__(env, view, draw = draw)
         self.time = time
         self.layers = layers
 
-    def run_simulation(self, timesteps = 2000):
+    def run_simulation(self, timesteps = 200):
         self.tree_network((5, 1), self.layers, 2)
         self.network.setup()
         self.time = timesteps
         self.env.run(until=timesteps)
 
 class random_simulation_1(base_simulation):
-    def __init__(self, env, view = 14):
-        super().__init__(env, view)   
-        self.time = 100
+    def __init__(self, env, view = 18, draw = True):
+        super().__init__(env, view, draw = draw)   
+        self.time = 500
 
-    def run_simulation(self, timesteps = 80):
-        self.random_network(1,10,30)
+    def run_simulation(self, timesteps = 500):
+        self.random_network(1,10,50)
 
         self.network.setup()
         self.time = timesteps
